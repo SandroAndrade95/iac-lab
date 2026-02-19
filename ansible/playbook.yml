@@ -1,0 +1,66 @@
+---
+- hosts: web
+  become: yes
+
+  vars:
+    web_message: "Welcome to the TruckCo Logistics Portal. (Under Construction)"
+
+  tasks:
+
+    - name: Update system
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Enable nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Deploy index.html
+      copy:
+        content: "{{ web_message }}"
+        dest: /var/www/html/index.html
+
+    - name: Install ufw
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: "22"
+
+    - name: Allow HTTP
+      ufw:
+        rule: allow
+        port: "80"
+
+    - name: Enable firewall
+      ufw:
+        state: enabled
+        policy: deny

@@ -1,0 +1,54 @@
+name: Deploy Trucking Tracker
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # ----------------------------
+    # Azure Login
+    # ----------------------------
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # ----------------------------
+    # Create SSH key file
+    # ----------------------------
+    - name: Create SSH Key
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem
+        chmod 600 ssh_key.pem
+
+    # ----------------------------
+    # Terraform
+    # ----------------------------
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      run: terraform -chdir=terraform init
+
+    - name: Terraform Apply
+      run: terraform -chdir=terraform apply -auto-approve -var="my_ip=${{ secrets.MY_IP }}/32"
+
+    # ----------------------------
+    # Install Ansible
+    # ----------------------------
+    - name: Install Ansible
+      run: sudo apt-get update && sudo apt-get install ansible -y
+
+    # ----------------------------
+    # Run Ansible
+    # ----------------------------
+    - name: Run Ansible
+      run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
