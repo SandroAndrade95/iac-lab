@@ -37,10 +37,32 @@ jobs:
       uses: hashicorp/setup-terraform@v3
 
     - name: Terraform Init
-      run: terraform -chdir=terraform init
+      run: terraform init -reconfigure
 
+    # ----------------------------
+    # Format Check
+    # ----------------------------
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    # ----------------------------
+    # Validate
+    # ----------------------------
+    - name: Terraform Validate
+      run: terraform validate
+
+    # ----------------------------
+    # Plan
+    # ----------------------------
+    - name: Terraform Plan
+      run: terraform plan -var="my_ip=${{ secrets.MY_IP }}/32" -out=tfplan
+
+    # ----------------------------
+    # Apply only on main branch
+    # ----------------------------
     - name: Terraform Apply
-      run: terraform -chdir=terraform apply -auto-approve -var="my_ip=${{ secrets.MY_IP }}/32"
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve tfplan
 
     # ----------------------------
     # Install Ansible
