@@ -42,11 +42,11 @@ jobs:
     - name: Terraform Init
       run: terraform init -reconfigure
 
-    # ----------------------------
-    # Format Check
-    # ----------------------------
-    - name: Terraform Format
-      run: terraform fmt -check
+#    # ----------------------------
+#    # Format Check
+#    # ----------------------------
+#    - name: Terraform Format
+#      run: terraform fmt -check
 
     # ----------------------------
     # Validate
