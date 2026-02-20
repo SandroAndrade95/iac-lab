@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  deploy:
+  plan:
     runs-on: ubuntu-latest
     environment: dev
     defaults:
@@ -13,34 +13,33 @@ jobs:
         working-directory: iac
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout
-      uses: actions/checkout@v4
+      # ----------------------------
+      # Azure Login
+      # ----------------------------
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # ----------------------------
-    # Azure Login
-    # ----------------------------
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # ----------------------------
+      # Create SSH key file
+      # ----------------------------
+      - name: Create SSH Key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem
+          chmod 600 ssh_key.pem
 
-    # ----------------------------
-    # Create SSH key file
-    # ----------------------------
-    - name: Create SSH Key
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem
-        chmod 600 ssh_key.pem
+      # ----------------------------
+      # Terraform
+      # ----------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    # ----------------------------
-    # Terraform
-    # ----------------------------
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-
-    - name: Terraform Init
-      run: terraform init -reconfigure
+      - name: Terraform Init
+        run: terraform init -reconfigure
 
 #    # ----------------------------
 #    # Format Check
@@ -51,67 +50,79 @@ jobs:
     # ----------------------------
     # Validate
     # ----------------------------
-    - name: Terraform Validate
-      run: terraform validate
+      - name: Terraform Validate
+        run: terraform validate
 
     # ----------------------------
     # Plan
     # ----------------------------
-    - name: Terraform Plan
-      run: terraform plan -var="my_ip=${{ secrets.MY_IP }}" -out=tfplan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
 
-    # ----------------------------
-    # Apply only on main branch
-    # ----------------------------
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve tfplan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: iac/tfplan
 
-    #  SSH
-    - name: Export SSH key
-      id: sshkey
-      run: |
-        terraform output -raw ssh_private_key > id_rsa
-        chmod 600 id_rsa
+  approval:
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: SandroAndrade
+          minimum-approvals: 1
+          issue-title: "Approve Terraform Apply"
+          issue-body: "Please review the plan artifact before approving."
 
-    # GitHub environment dev
+  apply:
+    needs: approval
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iac
+    steps:
+      - uses: actions/checkout@v4
 
-#    - name: Save SSH Key as Secret
-#      env:
-#        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      run: |
-#        gh secret set VM_SSH_KEY \
-#          --env dev \
-#          --body "$(cat id_rsa)"
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-#    - name: Export Private Key
-#      id: export_key
-#      run: |
-#        echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
-#        terraform output -raw private_key_pem >> $GITHUB_ENV
-#        echo "EOF" >> $GITHUB_ENV
-#
-#    - name: Create SSH key file
-#      run: |
-#        echo "$PRIVATE_KEY" > ssh_key.pem
-#        chmod 600 ssh_key.pem
+      - uses: hashicorp/setup-terraform@v3
 
-    # ----------------------------
-    # Install Ansible
-    # ----------------------------
-    - name: Install Ansible
-      run: sudo apt-get update && sudo apt-get install ansible -y
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: iac
 
-    # ----------------------------
-    # Run Ansible
-    # ----------------------------
-    - name: Run Ansible
-      #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
-      run: |
-        terraform -chdir=../iac output -raw vm_ip > ip.txt
-        echo "[web]" > hosts.ini
-        echo "$(cat ip.txt)" >> hosts.ini
+      - run: terraform init -reconfigure
+      - run: terraform apply -auto-approve tfplan
 
-        ansible-playbook -i hosts.ini playbook.yml \
-          --user azureuser \
-          --private-key ../iac/id_rsa      
+      #  SSH
+      - name: Export SSH key
+        id: sshkey
+        run: |
+          terraform output -raw ssh_private_key > id_rsa
+          chmod 600 id_rsa
+
+      # ----------------------------
+      # Install Ansible
+      # ----------------------------
+      - name: Install Ansible
+        run: sudo apt-get update && sudo apt-get install ansible -y
+
+      # ----------------------------
+      # Run Ansible
+      # ----------------------------
+      - name: Run Ansible
+        #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
+        run: |
+          terraform -chdir=../iac output -raw vm_ip > ip.txt
+          echo "[web]" > hosts.ini
+          echo "$(cat ip.txt)" >> hosts.ini
+
+          ansible-playbook -i hosts.ini playbook.yml \
+            --user azureuser \
+            --private-key ../iac/id_rsa      
