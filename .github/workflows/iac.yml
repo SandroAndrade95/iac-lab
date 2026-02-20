@@ -23,20 +23,10 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Get Public IP
-        id: get_ip
-        run: |
-          MY_IP=$(curl -s https://api.ipify.org)
-          echo "ssh_ip=$MY_IP" >> $GITHUB_OUTPUT
-
-      ## ----------------------------
-      ## Create SSH key file
-      ## ----------------------------
-      #- name: Create SSH Key
-      #  run: |
-      #    echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key.pem
-      #    chmod 600 ssh_key.pem
+      
+      - name: Detect Runner IP
+        id: ip
+        run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
       # ----------------------------
       # Terraform
@@ -63,10 +53,7 @@ jobs:
     # Plan
     # ----------------------------
       - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="my_ip=${{ steps.get_ip.outputs.ssh_ip }}" \
-            -out=tfplan
+        run: terraform plan -var="ssh_ip=${{ steps.ip.outputs.ip }}" -out=tfplan
 
       - uses: actions/upload-artifact@v4
         with:

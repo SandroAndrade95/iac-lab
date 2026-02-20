@@ -18,9 +18,6 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-locals {
-  ssh_source = var.my_ip != null ? "${var.my_ip}/32" : "*"
-}
 
 resource "azurerm_network_security_rule" "ssh" {
   name                        = "Allow-SSH"
@@ -32,7 +29,7 @@ resource "azurerm_network_security_rule" "ssh" {
   source_port_range           = "*"
   destination_port_range      = "22"
 
-  source_address_prefix       = local.ssh_source
+  source_address_prefix       = "${var.ssh_ip}/32"
   destination_address_prefix  = "*"
 
   resource_group_name         = azurerm_resource_group.rg.name
