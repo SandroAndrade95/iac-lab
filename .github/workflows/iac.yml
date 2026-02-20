@@ -81,7 +81,7 @@ jobs:
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: SandroAndrade
+          approvers: SandroAndrade95
           minimum-approvals: 1
           issue-title: "Approve Terraform Apply"
           issue-body: "Please review the plan artifact before approving."
