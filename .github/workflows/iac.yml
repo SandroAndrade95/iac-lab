@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  plan:
+  terraform-plan:
     runs-on: ubuntu-latest
     environment: dev
     defaults:
@@ -77,7 +77,7 @@ jobs:
           issue-title: "Approve Terraform Apply"
           issue-body: "Please review the plan artifact before approving."
 
-  apply:
+  terraform-apply-ansible:
     needs: approval
     runs-on: ubuntu-latest
     defaults:
