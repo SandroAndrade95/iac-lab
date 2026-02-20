@@ -67,6 +67,35 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve tfplan
 
+    #  SSH
+    - name: Export SSH key
+      id: sshkey
+      run: |
+        terraform output -raw ssh_private_key > id_rsa
+        chmod 600 id_rsa
+
+    # GitHub environment dev
+
+#    - name: Save SSH Key as Secret
+#      env:
+#        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      run: |
+#        gh secret set VM_SSH_KEY \
+#          --env dev \
+#          --body "$(cat id_rsa)"
+
+#    - name: Export Private Key
+#      id: export_key
+#      run: |
+#        echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+#        terraform output -raw private_key_pem >> $GITHUB_ENV
+#        echo "EOF" >> $GITHUB_ENV
+#
+#    - name: Create SSH key file
+#      run: |
+#        echo "$PRIVATE_KEY" > ssh_key.pem
+#        chmod 600 ssh_key.pem
+
     # ----------------------------
     # Install Ansible
     # ----------------------------
@@ -77,4 +106,12 @@ jobs:
     # Run Ansible
     # ----------------------------
     - name: Run Ansible
-      run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
+      #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
+      run: |
+        terraform -chdir=../iac output -raw vm_ip > ip.txt
+        echo "[web]" > hosts.ini
+        echo "$(cat ip.txt)" >> hosts.ini
+
+        ansible-playbook -i hosts.ini playbook.yml \
+          --user azureuser \
+          --private-key ../iac/id_rsa      

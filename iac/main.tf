@@ -72,6 +72,11 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
+resource "tls_private_key" "ssh" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
 resource "azurerm_linux_virtual_machine" "vm" {
   name                = "vm-trucking-01"
   resource_group_name = azurerm_resource_group.rg.name
@@ -84,9 +89,9 @@ resource "azurerm_linux_virtual_machine" "vm" {
   ]
 
   admin_ssh_key {
-    username   = "azureuser"
-    public_key = file("~/.ssh/id_rsa.pub")
-  }
+  username   = "azureuser"
+  public_key = tls_private_key.ssh.public_key_openssh
+}
 
   os_disk {
     caching              = "ReadWrite"
