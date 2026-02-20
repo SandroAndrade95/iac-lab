@@ -129,11 +129,9 @@ jobs:
       # ----------------------------
       - name: Run Ansible
         #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
-        run: |
-          terraform -chdir=../iac output -raw public_ip > vm_ip.txt
+        run: | 
+          terraform output -raw public_ip > vm_ip.tx
           echo "[web]" > hosts.ini
-          echo "$(cat vm_ip.txt)" >> hosts.ini
-
-          ansible-playbook -i hosts.ini playbook.yml \
-            --user azureuser \
-            --private-key ../iac/id_rsa      
+          echo "$(cat vm_ip.txt) ansible_user=azureuser ansible_ssh_private_key_file=id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> hosts.ini
+            
+          ansible-playbook -i hosts.ini ../ansible/playbook.yml
