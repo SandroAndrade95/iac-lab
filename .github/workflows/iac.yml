@@ -58,7 +58,7 @@ jobs:
     # Plan
     # ----------------------------
     - name: Terraform Plan
-      run: terraform plan -var="my_ip=${{ secrets.MY_IP }}/32" -out=tfplan
+      run: terraform plan -var="my_ip=${{ secrets.MY_IP }}" -out=tfplan
 
     # ----------------------------
     # Apply only on main branch
