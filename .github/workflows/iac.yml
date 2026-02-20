@@ -89,9 +89,11 @@ jobs:
   terraform-apply-ansible:
     needs: approval
     runs-on: ubuntu-latest
+    environment: dev
     defaults:
       run:
         working-directory: iac
+    
     steps:
       - uses: actions/checkout@v4
 
