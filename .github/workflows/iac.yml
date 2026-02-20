@@ -130,9 +130,9 @@ jobs:
       - name: Run Ansible
         #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
         run: |
-          terraform -chdir=../iac output -raw vm_ip > ip.txt
+          terraform -chdir=../iac output -raw public_ip > vm_ip.txt
           echo "[web]" > hosts.ini
-          echo "$(cat ip.txt)" >> hosts.ini
+          echo "$(cat vm_ip.txt)" >> hosts.ini
 
           ansible-playbook -i hosts.ini playbook.yml \
             --user azureuser \
