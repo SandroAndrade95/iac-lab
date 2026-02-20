@@ -130,7 +130,7 @@ jobs:
       - name: Run Ansible
         #run: ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
         run: | 
-          terraform output -raw public_ip > vm_ip.tx
+          terraform output -raw public_ip > vm_ip.txt
           echo "IP detected:"
           cat vm_ip.txt
           echo "[web]" > hosts.ini
